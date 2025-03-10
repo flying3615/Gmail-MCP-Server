@@ -16,7 +16,7 @@ import { fileURLToPath } from 'url';
 import http from 'http';
 import open from 'open';
 import os from 'os';
-import {createEmailMessage} from "./utl";
+import {createEmailMessage} from "./utl.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
