@@ -16,7 +16,7 @@ import { fileURLToPath } from 'url';
 import http from 'http';
 import open from 'open';
 import os from 'os';
-import { createEmailMessage } from './util';
+import { createEmailMessage } from './util.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -524,15 +524,20 @@ async function main() {
           // Convert from base64url to regular base64
           const normalized = data.replace(/-/g, '+').replace(/_/g, '/');
 
+          // Sanitize filename and remove any newlines
+          const sanitizedFilename = validatedArgs.filename
+            .trim()
+            .replace(/[\n\r]/g, '');
+
           const downloadDir =
             process.argv[2] ?? path.join(process.cwd(), 'downloads');
 
           if (!fs.existsSync(downloadDir)) {
-            fs.mkdirSync(downloadDir);
+            fs.mkdirSync(downloadDir, { recursive: true });
           }
 
           // Save the file
-          const filePath = path.join(downloadDir, validatedArgs.filename);
+          const filePath = path.join(downloadDir, sanitizedFilename);
           fs.writeFileSync(filePath, Buffer.from(normalized, 'base64'));
 
           return {
