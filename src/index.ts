@@ -641,3 +641,11 @@ main().catch(error => {
   console.error('Server error:', error);
   process.exit(1);
 });
+
+// "gmail": {
+//   "command": "node",
+//       "args": [
+//     "C:\\Users\\YLiu2\\code\\Gmail-MCP-Server-flying3615\\dist\\index.js",
+//     "C:\\Users\\YLiu2\\LocalDownloads"
+//   ]
+// },
