@@ -14,7 +14,8 @@
     "prepare": "npm run build",
     "prepublishOnly": "npm run build",
     "lint": "npx eslint src",
-    "lint:fix": "npm run lint -- --fix"
+    "lint:fix": "npm run lint -- --fix",
+    "inspect": "npx @modelcontextprotocol/inspector node ./dist/index.js"
   },
   "files": [
     "dist",

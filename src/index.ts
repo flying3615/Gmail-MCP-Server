@@ -16,7 +16,7 @@ import { fileURLToPath } from 'url';
 import http from 'http';
 import open from 'open';
 import os from 'os';
-import { createEmailMessage } from './utl.js';
+import { createEmailMessage } from './util';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -45,7 +45,7 @@ interface GmailMessagePart {
   parts?: GmailMessagePart[];
 }
 
-interface EmailAttachment {
+export interface EmailAttachment {
   id: string;
   filename: string;
   mimeType: string;
@@ -202,6 +202,12 @@ const SendEmailSchema = z.object({
   bcc: z.array(z.string()).optional().describe('List of BCC recipients'),
 });
 
+const DownloadAttachmentSchema = z.object({
+  messageId: z.string().describe('ID of the email message'),
+  attachmentId: z.string().describe('ID of the attachment to download'),
+  filename: z.string().describe('Original filename of the attachment'),
+});
+
 const ReadEmailSchema = z.object({
   messageId: z.string().describe('ID of the email message to retrieve'),
 });
@@ -259,6 +265,11 @@ async function main() {
         name: 'send_email',
         description: 'Sends a new email',
         inputSchema: zodToJsonSchema(SendEmailSchema),
+      },
+      {
+        name: 'download_attachment',
+        description: 'Downloads an attachment from an email',
+        inputSchema: zodToJsonSchema(DownloadAttachmentSchema),
       },
       {
         name: 'draft_email',
@@ -420,7 +431,7 @@ async function main() {
                 attachments
                   .map(
                     a =>
-                      `- ${a.filename} (${a.mimeType}, ${Math.round(a.size / 1024)} KB)`
+                      `- attachmentId: ${a.id}, fileName: ${a.filename}, fileType: (${a.mimeType}, fileSize: ${Math.round(a.size / 1024)} KB)`
                   )
                   .join('\n')
               : '';
@@ -492,6 +503,48 @@ async function main() {
               {
                 type: 'text',
                 text: `Email ${validatedArgs.messageId} labels updated successfully`,
+              },
+            ],
+          };
+        }
+
+        case 'download_attachment': {
+          const validatedArgs = DownloadAttachmentSchema.parse(args);
+          const response = await gmail.users.messages.attachments.get({
+            userId: 'me',
+            messageId: validatedArgs.messageId,
+            id: validatedArgs.attachmentId,
+          });
+
+          const data = response.data.data;
+          if (!data) {
+            throw new Error('No attachment data found');
+          }
+
+          // Convert from base64url to regular base64
+          const normalized = data.replace(/-/g, '+').replace(/_/g, '/');
+
+          const downloadDir =
+            process.argv[2] ?? path.join(process.cwd(), 'downloads');
+
+          if (!fs.existsSync(downloadDir)) {
+            fs.mkdirSync(downloadDir);
+          }
+
+          // Save the file
+          const filePath = path.join(downloadDir, validatedArgs.filename);
+          fs.writeFileSync(filePath, Buffer.from(normalized, 'base64'));
+
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Attachment downloaded successfully to: ${filePath}`,
+              },
+              {
+                type: 'file',
+                filePath: filePath,
+                size: fs.statSync(filePath).size,
               },
             ],
           };
